@@ -56,7 +56,4 @@ func main() {
 	} else {
 		fmt.Printf("数据已经发送，但是MAC地址输入不合法，请确认MAC地址：[%v]\n", *inputMac)
 	}
-
-
-	//routers.StartGin()
 }
