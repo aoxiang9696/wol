@@ -7,15 +7,23 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"wol/utils"
 )
 
 func main() {
 
-	inputMac := flag.String("mac", "112233445566", "目标MAC地址，例如：\n\t1). 11-22-33-44-55-66\n\t2). 11:22:33:44:55:66\n\t3). 112233445566\n\t")
+	localMac := utils.GetLocalMac()
+
+	inputMac := flag.String("mac", localMac, "目标MAC地址，例如：\n\t\t\t11-22-33-44-55-66" +
+		"\n\t\t\t11:22:33:44:55:66\n\t\t\t112233445566")
 	flag.Parse()
 
 	// 去除-和:分隔符
 	stripMac := strings.ReplaceAll(strings.ReplaceAll(*inputMac, ":", ""), "-", "")
+	if len(stripMac) != 12 {
+		fmt.Printf("MAC地址输入有误：%v\n", *inputMac)
+		return
+	}
 
 	// 发送者：即本机
 	sender := net.UDPAddr{}
@@ -27,7 +35,7 @@ func main() {
 
 	conn, err := net.DialUDP("udp", &sender, &target)
 	if err != nil {
-		fmt.Printf("创建连接对象出现错误：%v\n", err)
+		fmt.Printf("\033[31m创建连接对象出现错误：%v\033[0m\n", err)
 		return
 	}
 
@@ -46,14 +54,15 @@ func main() {
 	magicPacket := buffer.Bytes()
 	lens, err := conn.Write(magicPacket)
 	if err != nil {
-		fmt.Printf("发送网络数据报文出错：%v\n", err)
+		fmt.Printf("\033[31m发送网络数据报文出错：%v\033[0m\n", err)
 		return
 	}
 	_ = conn.Close()
 
 	if lens == 102 {
-		fmt.Printf("发送魔包成功\n")
+		macFirm := utils.QueryMacFirm(strings.ToUpper(stripMac[:6]))
+		fmt.Printf("\033[32mMagic Packet发送成功，目标MAC地址为：[%v]\t生产厂商：[%v]\033[0m\n", *inputMac, macFirm)
 	} else {
-		fmt.Printf("数据已经发送，但是MAC地址输入不合法，请确认MAC地址：[%v]\n", *inputMac)
+		fmt.Printf("\033[33mMagic Packet已经发送，但是输入的MAC地址可能不合法，目标主机可能不会被唤醒，请确认MAC地址：[%v]\033[0m\n", *inputMac)
 	}
 }
